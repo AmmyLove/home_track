@@ -11,6 +11,12 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     dialect: 'postgres',
     logging: false, // set to console.log if you want to see SQL queries
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false // This is important for Render
+      }
+    }
   }
 );
 
