@@ -1,0 +1,42 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #fdf6e3;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Make images and tables behave on small screens */
+img { max-width: 100%; }
+table { border-collapse: collapse; }
+
+/* Prevent horizontal overflow on mobile */
+#root {
+  overflow-x: hidden;
+}
+
+/* Scrollable tables on small screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Show hamburger on mobile, hide on desktop */
+@media (max-width: 768px) {
+  .hamburger { display: block !important; }
+  .nav-links-desktop { display: none !important; }
+  .nav-greeting { display: none !important; }
+}
+
+@media (min-width: 769px) {
+  .hamburger { display: none !important; }
+}

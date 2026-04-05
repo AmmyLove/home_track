@@ -67,7 +67,7 @@ export const getUsageInsights = async (req, res) => {
     const sinceStr = since.toISOString().split("T")[0];
 
     const consumptions = await Consumption.findAll({
-      where: { consumedAt: { [Op.gte]: sinceStr } },
+      where: { userId: req.userId, consumedAt: { [Op.gte]: sinceStr } },
       include: Item,
     });
 

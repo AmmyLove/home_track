@@ -1,227 +1,162 @@
 import { useState, useEffect } from "react";
 import { getItems } from "../api/items.js";
 import { getPurchases, createPurchase } from "../api/purchases.js";
-import { formatMoney, currencySymbol, CURRENCIES } from "../utils/format.js";
+import { formatMoney, CURRENCIES } from "../utils/format.js";
+
+const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
+
+const Card = ({ children, style = {} }) => (
+  <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px", marginBottom: "20px", ...style }}>
+    {children}
+  </div>
+);
+
+const Label = ({ children }) => (
+  <label style={{ fontSize: "11px", fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "6px", display: "block", fontFamily: "system-ui, sans-serif" }}>
+    {children}
+  </label>
+);
+
+const inputStyle = { padding: "9px 13px", border: `2px solid ${C.border}`, borderRadius: "12px", fontSize: "14px", background: "#fff", color: C.brown, outline: "none", fontFamily: "Georgia, serif", width: "100%" };
 
 export default function Purchases() {
-  const [items, setItems] = useState([]);
+  const [items, setItems]         = useState([]);
   const [purchases, setPurchases] = useState([]);
-  const [form, setForm] = useState({
-    itemId: "",
-    quantity: "",
-    price: "",
-    currency: "NGN",
-    purchasedAt: "", // ← for backdating
-  });
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [form, setForm]           = useState({ itemId: "", quantity: "", price: "", currency: "NGN", purchasedAt: "" });
+  const [error, setError]         = useState(null);
+  const [success, setSuccess]     = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
 
   useEffect(() => {
-    getItems().then((res) => setItems(res.data)).catch(() => setError("Failed to load items."));
+    getItems().then((r) => setItems(r.data)).catch(() => {});
     fetchPurchases();
   }, []);
 
   const fetchPurchases = async () => {
-    try {
-      const res = await getPurchases();
-      setPurchases(res.data);
-    } catch (err) {
-      setError("Failed to load purchases.");
-    }
+    try { const r = await getPurchases(); setPurchases(r.data); }
+    catch { setError("Failed to load purchases."); }
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
   const selectedCurrency = CURRENCIES.find((c) => c.code === form.currency);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLastAlert(null);
-
-    if (!form.itemId) return setError("Please select an item.");
+    setError(null); setSuccess(null); setLastAlert(null);
+    if (!form.itemId)              return setError("Please select an item.");
     if (!form.quantity || form.quantity <= 0) return setError("Quantity must be greater than 0.");
-    if (!form.price || form.price <= 0) return setError("Price must be greater than 0.");
-
+    if (!form.price    || form.price <= 0)    return setError("Price must be greater than 0.");
     setLoading(true);
     try {
-      const res = await createPurchase({
-        itemId: form.itemId,
-        quantity: parseFloat(form.quantity),
-        price: parseFloat(form.price),
-        currency: form.currency,
-        purchasedAt: form.purchasedAt || null, // null = backend uses today
-      });
-
-      setSuccess("Purchase logged successfully!");
-      if (res.data.alert) setLastAlert(res.data.alert);
-      // reset purchasedAt too
-      setForm({ itemId: "", quantity: "", price: "", currency: "NGN", purchasedAt: "" });
+      const r = await createPurchase({ itemId: form.itemId, quantity: parseFloat(form.quantity), price: parseFloat(form.price), currency: form.currency, purchasedAt: form.purchasedAt || null });
+      setSuccess("Purchase logged! 🛒");
+      if (r.data.alert) setLastAlert(r.data.alert);
+      setForm({ itemId: form.itemId, quantity: "", price: "", currency: form.currency, purchasedAt: "" });
       fetchPurchases();
     } catch (err) {
-      setError("Failed to log purchase.");
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.error || "Failed to log purchase.");
+    } finally { setLoading(false); }
   };
 
-  const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString("en-GB", {
-      day: "numeric", month: "short", year: "numeric",
-    });
+  const formatDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   return (
-    <div>
-      <h1 style={styles.heading}>Purchases</h1>
+    <div style={{ fontFamily: "Georgia, serif" }}>
+      <h1 style={{ fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: C.brown, marginBottom: "6px" }}>Purchases 🛒</h1>
+      <p style={{ fontSize: "13px", color: C.tan, fontStyle: "italic", marginBottom: "24px" }}>Log what you buy and track your spending.</p>
 
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Log a Purchase</h2>
+      {error     && <div style={alertStyle("error")}>{error}</div>}
+      {success   && <div style={alertStyle("success")}>{success}</div>}
+      {lastAlert && <div style={alertStyle("warn")}>⚠️ {lastAlert}</div>}
 
-        {error && <p style={styles.error}>{error}</p>}
-        {success && <p style={styles.success}>{success}</p>}
-        {lastAlert && <p style={styles.alert}>⚠️ {lastAlert}</p>}
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>Item *</label>
-            <select style={styles.input} name="itemId" value={form.itemId} onChange={handleChange}>
+      {/* Log form */}
+      <Card>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>✨ Log a purchase</p>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "14px" }}>
+            <Label>Item *</Label>
+            <select style={inputStyle} name="itemId" value={form.itemId} onChange={handleChange}>
               <option value="">Select an item</option>
               {items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} {item.unit ? `(${item.unit})` : ""}
-                </option>
+                <option key={item.id} value={item.id}>{item.name} {item.unit ? `(${item.unit})` : ""}</option>
               ))}
             </select>
-            {items.length === 0 && (
-              <p style={styles.hint}>No items yet — add some on the Items page first.</p>
-            )}
+            {items.length === 0 && <p style={{ fontSize: "11px", color: C.tan, fontStyle: "italic", marginTop: "4px" }}>No items yet — add some on the Items page first.</p>}
           </div>
 
-          <div style={styles.row}>
-            <div style={styles.field}>
-              <label style={styles.label}>Quantity *</label>
-              <input
-                style={styles.input}
-                name="quantity"
-                type="number"
-                min="0"
-                step="any"
-                value={form.quantity}
-                onChange={handleChange}
-                placeholder="e.g. 2"
-              />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px", marginBottom: "14px" }}>
+            <div>
+              <Label>Quantity *</Label>
+              <input style={inputStyle} name="quantity" type="number" min="0" step="any" value={form.quantity} onChange={handleChange} placeholder="e.g. 2" />
             </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>Currency *</label>
-              <select style={styles.input} name="currency" value={form.currency} onChange={handleChange}>
-                {/* using CURRENCIES from utils instead of a local array */}
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
-                ))}
+            <div>
+              <Label>Currency *</Label>
+              <select style={inputStyle} name="currency" value={form.currency} onChange={handleChange}>
+                {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Cost per unit ({selectedCurrency?.symbol}) *
-              </label>
-              <input
-                style={styles.input}
-                name="price"
-                type="number"
-                min="0"
-                step="any"
-                value={form.price}
-                onChange={handleChange}
-                placeholder="e.g. 500"
-              />
+            <div>
+              <Label>Cost per unit ({selectedCurrency?.symbol}) *</Label>
+              <input style={inputStyle} name="price" type="number" min="0" step="any" value={form.price} onChange={handleChange} placeholder="e.g. 500" />
+            </div>
+            <div>
+              <Label>Date (optional)</Label>
+              <input style={inputStyle} name="purchasedAt" type="date" value={form.purchasedAt} onChange={handleChange} max={new Date().toISOString().split("T")[0]} />
             </div>
           </div>
 
-          {/* live total now uses formatMoney */}
           {form.quantity && form.price && (
-            <p style={styles.preview}>
-              Total: {formatMoney(
-                parseFloat(form.quantity) * parseFloat(form.price),
-                form.currency
-              )}
-            </p>
+            <div style={{ background: "#fff0f0", border: `2px solid #ffb3b3`, borderRadius: "12px", padding: "10px 16px", marginBottom: "14px", fontSize: "14px", fontWeight: "700", color: C.coral }}>
+              Total: {formatMoney(parseFloat(form.quantity) * parseFloat(form.price), form.currency)}
+            </div>
           )}
 
-          {/* date picker for backdating purchases */}
-          <div style={styles.field}>
-            <label style={styles.label}>Date of purchase</label>
-            <input
-              style={styles.input}
-              name="purchasedAt"
-              type="date"
-              value={form.purchasedAt}
-              onChange={handleChange}
-              max={new Date().toISOString().split("T")[0]} // prevents future dates
-            />
-            <p style={styles.hint}>Leave blank to use today's date.</p>
-          </div>
-
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Logging..." : "Log Purchase"}
+          <button type="submit" style={{ background: C.coral, color: "#fff", border: "none", borderRadius: "20px", padding: "10px 24px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "Georgia, serif" }} disabled={loading}>
+            {loading ? "Logging... 🌿" : "Log purchase 🛒"}
           </button>
         </form>
-      </div>
+      </Card>
 
-      {/* Purchase history table */}
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Purchase History ({purchases.length})</h2>
+      {/* History */}
+      <Card>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>📋 Purchase history ({purchases.length})</p>
         {purchases.length === 0 ? (
-          <p style={styles.muted}>No purchases logged yet.</p>
+          <p style={{ color: C.tan, fontStyle: "italic", fontSize: "13px" }}>No purchases yet. Log your first one above!</p>
         ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {["Item", "Qty", "Cost/unit", "Total", "Date"].map((h) => (
-                  <th key={h} style={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {purchases.map((p) => (
-                <tr key={p.id}>
-                  <td style={styles.td}>{p.Item?.name ?? "—"}</td>
-                  <td style={styles.td}>{p.quantity} {p.Item?.unit ?? ""}</td>
-                  {/*using formatMoney for proper formatting */}
-                  <td style={styles.td}>{formatMoney(p.price, p.currency)}</td>
-                  <td style={styles.td}>{formatMoney(p.price * p.quantity, p.currency)}</td>
-                  <td style={styles.td}>{formatDate(p.purchasedAt || p.createdAt)}</td>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "480px" }}>
+              <thead>
+                <tr>
+                  {["Item", "Qty", "Cost/unit", "Total", "Date"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `2px dashed ${C.border}`, fontFamily: "system-ui, sans-serif" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {purchases.map((p) => (
+                  <tr key={p.id}>
+                    <td style={tdStyle}>{p.Item?.name ?? "—"}</td>
+                    <td style={tdStyle}>{p.quantity} {p.Item?.unit ?? ""}</td>
+                    <td style={tdStyle}>{formatMoney(p.price, p.currency)}</td>
+                    <td style={tdStyle}>{formatMoney(p.price * p.quantity, p.currency)}</td>
+                    <td style={tdStyle}>{formatDate(p.purchasedAt || p.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
 
-const styles = {
-  heading: { fontSize: "24px", fontWeight: "700", marginBottom: "24px", color: "#111827" },
-  subheading: { fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#374151" },
-  card: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px", marginBottom: "24px" },
-  form: { display: "flex", flexDirection: "column", gap: "16px" },
-  row: { display: "flex", gap: "16px", flexWrap: "wrap" },
-  field: { display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "180px" },
-  label: { fontSize: "13px", fontWeight: "500", color: "#374151" },
-  input: { padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none" },
-  button: { alignSelf: "flex-start", padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer" },
-  preview: { fontSize: "15px", fontWeight: "600", color: "#4f46e5", margin: "0" },
-  hint: { fontSize: "12px", color: "#9ca3af", margin: "4px 0 0" },
-  error: { color: "#dc2626", fontSize: "14px", background: "#fef2f2", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  success: { color: "#16a34a", fontSize: "14px", background: "#f0fdf4", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  alert: { color: "#92400e", fontSize: "14px", background: "#fffbeb", border: "1px solid #fcd34d", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#6b7280", borderBottom: "1px solid #e5e7eb" },
-  td: { padding: "12px", fontSize: "14px", color: "#111827", borderBottom: "1px solid #f3f4f6" },
-  muted: { color: "#9ca3af", fontSize: "14px" },
-};
+const tdStyle = { padding: "11px 12px", fontSize: "13px", color: "#3d2b1f", borderBottom: "1.5px dotted #f5e6c8", fontFamily: "system-ui, sans-serif" };
+const alertStyle = (type) => ({
+  background: type === "error" ? "#fff0f0" : type === "warn" ? "#fffbeb" : "#f0fdf4",
+  border: `1.5px solid ${type === "error" ? "#ffb3b3" : type === "warn" ? "#fcd34d" : "#b3f0c9"}`,
+  borderRadius: "14px", padding: "11px 16px", fontSize: "13px",
+  color: type === "error" ? "#b91c1c" : type === "warn" ? "#92400e" : "#166534",
+  marginBottom: "16px", fontFamily: "system-ui, sans-serif",
+});

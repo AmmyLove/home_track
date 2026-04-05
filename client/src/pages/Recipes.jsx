@@ -1,236 +1,139 @@
-// src/pages/Recipes.jsx
-
 import { useState, useEffect } from "react";
 import { getItems } from "../api/items.js";
 import { getRecipes, createRecipe, getRecipe, deleteRecipe } from "../api/recipes.js";
 
+const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
+const inputStyle = { padding: "9px 13px", border: `2px solid #f5e6c8`, borderRadius: "12px", fontSize: "14px", background: "#fff", color: "#3d2b1f", outline: "none", fontFamily: "Georgia, serif", width: "100%" };
+const Label = ({ children }) => <label style={{ fontSize: "11px", fontWeight: "700", color: "#8b7355", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "6px", display: "block", fontFamily: "system-ui, sans-serif" }}>{children}</label>;
+
 export default function Recipes() {
-  const [items, setItems] = useState([]);         // all available items (for the ingredient picker)
-  const [recipes, setRecipes] = useState([]);     // all saved recipes
-  const [selectedRecipe, setSelectedRecipe] = useState(null); // the recipe whose shopping list is shown
+  const [items, setItems]               = useState([]);
+  const [recipes, setRecipes]           = useState([]);
+  const [selectedRecipe, setSelected]   = useState(null);
+  const [recipeName, setRecipeName]     = useState("");
+  const [ingredients, setIngredients]   = useState([{ itemId: "", quantity: "" }]);
+  const [error, setError]               = useState(null);
+  const [success, setSuccess]           = useState(null);
+  const [loading, setLoading]           = useState(false);
+  const [listLoading, setListLoading]   = useState(false);
 
-  // Form state for creating a new recipe
-  const [recipeName, setRecipeName] = useState("");
-  const [ingredients, setIngredients] = useState([
-    { itemId: "", quantity: "" }, // start with one empty ingredient row
-  ]);
-
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [listLoading, setListLoading] = useState(false);
-
-  // Load items and recipes when the page opens
   useEffect(() => {
-    getItems().then((res) => setItems(res.data)).catch(() => setError("Failed to load items."));
+    getItems().then((r) => setItems(r.data)).catch(() => {});
     fetchRecipes();
   }, []);
 
   const fetchRecipes = async () => {
-    try {
-      const res = await getRecipes();
-      setRecipes(res.data);
-    } catch (err) {
-      setError("Failed to load recipes.");
-    }
+    try { const r = await getRecipes(); setRecipes(r.data); }
+    catch { setError("Failed to load recipes."); }
   };
 
-  // ── Ingredient row handlers ──────────────────────────────────────
-
-  // Update a specific ingredient row (by index) when user changes a field
   const handleIngredientChange = (index, field, value) => {
-    const updated = [...ingredients]; // copy the array
-    updated[index][field] = value;    // update only the changed field
+    const updated = [...ingredients];
+    updated[index][field] = value;
     setIngredients(updated);
   };
 
-  // Add a new blank ingredient row
-  const addIngredientRow = () => {
-    setIngredients([...ingredients, { itemId: "", quantity: "" }]);
-  };
-
-  // Remove an ingredient row by index
-  const removeIngredientRow = (index) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
-  };
-
-  // ── Form submit ──────────────────────────────────────────────────
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
-
+    setError(null); setSuccess(null);
     if (!recipeName.trim()) return setError("Recipe name is required.");
-
-    // Validate that every ingredient row has both an item and a quantity
-    const validIngredients = ingredients.filter((i) => i.itemId && i.quantity > 0);
-    if (validIngredients.length === 0) {
-      return setError("Add at least one ingredient with a quantity.");
-    }
-
+    const valid = ingredients.filter((i) => i.itemId && i.quantity > 0);
+    if (valid.length === 0) return setError("Add at least one ingredient with a quantity.");
     setLoading(true);
     try {
-      await createRecipe({
-        name: recipeName,
-        items: validIngredients.map((i) => ({
-          itemId: i.itemId,
-          quantity: parseFloat(i.quantity),
-        })),
-      });
-
-      setSuccess(`"${recipeName}" saved!`);
+      await createRecipe({ name: recipeName, items: valid.map((i) => ({ itemId: i.itemId, quantity: parseFloat(i.quantity) })) });
+      setSuccess(`"${recipeName}" saved! 🍳`);
       setRecipeName("");
-      setIngredients([{ itemId: "", quantity: "" }]); // reset to one blank row
-      setSelectedRecipe(null);
+      setIngredients([{ itemId: "", quantity: "" }]);
       fetchRecipes();
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to create recipe.");
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.error || "Failed to save recipe.");
+    } finally { setLoading(false); }
   };
 
-  // ── Shopping list ────────────────────────────────────────────────
-
-  // Fetch a recipe's shopping list and show it
   const handleViewList = async (recipe) => {
-    setListLoading(true);
-    setSelectedRecipe(null);
-    setError(null);
-    try {
-      const res = await getRecipe(recipe.id);
-      setSelectedRecipe(res.data);
-    } catch (err) {
-      setError("Failed to load shopping list.");
-    } finally {
-      setListLoading(false);
-    }
+    setListLoading(true); setSelected(null); setError(null);
+    try { const r = await getRecipe(recipe.id); setSelected(r.data); }
+    catch { setError("Failed to load shopping list."); }
+    finally { setListLoading(false); }
   };
-
-  // ── Delete ───────────────────────────────────────────────────────
 
   const handleDelete = async (recipe) => {
-    const confirmed = window.confirm(`Delete "${recipe.name}"?`);
-    if (!confirmed) return;
-
+    if (!window.confirm(`Delete "${recipe.name}"?`)) return;
     try {
       await deleteRecipe(recipe.id);
       setSuccess(`"${recipe.name}" deleted.`);
-      // If the deleted recipe's list is currently shown, clear it
-      if (selectedRecipe?.id === recipe.id) setSelectedRecipe(null);
+      if (selectedRecipe?.id === recipe.id) setSelected(null);
       fetchRecipes();
-    } catch (err) {
-      setError("Failed to delete recipe.");
-    }
+    } catch { setError("Failed to delete recipe."); }
   };
 
-  // ── Render ───────────────────────────────────────────────────────
-
   return (
-    <div>
-      <h1 style={styles.heading}>Recipes</h1>
+    <div style={{ fontFamily: "Georgia, serif" }}>
+      <h1 style={{ fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: C.brown, marginBottom: "6px" }}>Recipes 🍳</h1>
+      <p style={{ fontSize: "13px", color: C.tan, fontStyle: "italic", marginBottom: "24px" }}>
+        Save recipes and instantly see what you need to buy to make them.
+      </p>
 
-      {error && <p style={styles.error}>{error}</p>}
-      {success && <p style={styles.success}>{success}</p>}
+      {error   && <div style={alertStyle("error")}>{error}</div>}
+      {success && <div style={alertStyle("success")}>{success}</div>}
 
-      {/* ── Create recipe form ──────────────────────────────────── */}
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Create a Recipe</h2>
-        <form onSubmit={handleSubmit} style={styles.form}>
-
-          {/* Recipe name */}
-          <div style={styles.field}>
-            <label style={styles.label}>Recipe name *</label>
-            <input
-              style={styles.input}
-              value={recipeName}
-              onChange={(e) => setRecipeName(e.target.value)}
-              placeholder="e.g. Jollof Rice"
-            />
+      {/* Create recipe form */}
+      <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px", marginBottom: "20px" }}>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>✨ Create a recipe</p>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "14px" }}>
+            <Label>Recipe name *</Label>
+            <input style={inputStyle} value={recipeName} onChange={(e) => setRecipeName(e.target.value)} placeholder="e.g. Jollof Rice" />
           </div>
 
-          {/* Ingredient rows */}
-          <label style={styles.label}>Ingredients *</label>
-          {ingredients.map((ing, index) => (
-            <div key={index} style={styles.ingredientRow}>
+          <Label>Ingredients *</Label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
+            {ingredients.map((ing, index) => (
+              <div key={index} style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                <select style={{ ...inputStyle, flex: 2, minWidth: "140px" }} value={ing.itemId} onChange={(e) => handleIngredientChange(index, "itemId", e.target.value)}>
+                  <option value="">Select ingredient</option>
+                  {items.map((item) => <option key={item.id} value={item.id}>{item.name} {item.unit ? `(${item.unit})` : ""}</option>)}
+                </select>
+                <input style={{ ...inputStyle, flex: 1, minWidth: "80px" }} type="number" min="0" step="any" value={ing.quantity} onChange={(e) => handleIngredientChange(index, "quantity", e.target.value)} placeholder="Qty" />
+                {ingredients.length > 1 && (
+                  <button type="button" onClick={() => setIngredients(ingredients.filter((_, i) => i !== index))} style={{ background: "#fff0f0", color: "#b91c1c", border: "1.5px solid #ffb3b3", borderRadius: "10px", padding: "8px 12px", cursor: "pointer", fontFamily: "Georgia, serif", flexShrink: 0 }}>✕</button>
+                )}
+              </div>
+            ))}
+          </div>
 
-              {/* Item picker */}
-              <select
-                style={{ ...styles.input, flex: 2 }}
-                value={ing.itemId}
-                onChange={(e) => handleIngredientChange(index, "itemId", e.target.value)}
-              >
-                <option value="">Select ingredient</option>
-                {items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} {item.unit ? `(${item.unit})` : ""}
-                  </option>
-                ))}
-              </select>
-
-              {/* Quantity input */}
-              <input
-                style={{ ...styles.input, flex: 1 }}
-                type="number"
-                min="0"
-                step="any"
-                value={ing.quantity}
-                onChange={(e) => handleIngredientChange(index, "quantity", e.target.value)}
-                placeholder="Qty"
-              />
-
-              {/* Remove row button — only show if there's more than one row */}
-              {ingredients.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeIngredientRow(index)}
-                  style={styles.removeBtn}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-
-          {/* Add another ingredient */}
-          <button type="button" onClick={addIngredientRow} style={styles.addRowBtn}>
-            + Add ingredient
-          </button>
-
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Saving..." : "Save Recipe"}
-          </button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button type="button" onClick={() => setIngredients([...ingredients, { itemId: "", quantity: "" }])} style={{ background: "#fdf6e3", color: C.brown, border: `2px solid ${C.border}`, borderRadius: "20px", padding: "7px 16px", fontSize: "13px", cursor: "pointer", fontFamily: "Georgia, serif" }}>
+              + Add ingredient
+            </button>
+            <button type="submit" style={{ background: C.coral, color: "#fff", border: "none", borderRadius: "20px", padding: "9px 22px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "Georgia, serif" }} disabled={loading}>
+              {loading ? "Saving... 🌿" : "Save recipe 🍳"}
+            </button>
+          </div>
         </form>
       </div>
 
-      {/* ── Saved recipes list ──────────────────────────────────── */}
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Saved Recipes ({recipes.length})</h2>
+      {/* Saved recipes */}
+      <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px", marginBottom: "20px" }}>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>📖 Saved recipes ({recipes.length})</p>
         {recipes.length === 0 ? (
-          <p style={styles.muted}>No recipes yet. Create one above.</p>
+          <p style={{ color: C.tan, fontStyle: "italic", fontSize: "13px" }}>No recipes yet. Create your first one above!</p>
         ) : (
-          <div style={styles.recipeList}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {recipes.map((recipe) => (
-              <div key={recipe.id} style={styles.recipeRow}>
+              <div key={recipe.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#fdf6e3", border: `2px solid ${C.border}`, borderRadius: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <p style={styles.recipeName}>{recipe.name}</p>
-                  {/* Show ingredient count */}
-                  <p style={styles.recipeMeta}>
+                  <p style={{ fontWeight: "700", fontSize: "14px", color: C.brown, margin: 0 }}>{recipe.name}</p>
+                  <p style={{ fontSize: "11px", color: C.tan, fontStyle: "italic", margin: "3px 0 0" }}>
                     {recipe.Items?.length ?? 0} ingredient{recipe.Items?.length !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <div style={styles.recipeActions}>
-                  <button
-                    onClick={() => handleViewList(recipe)}
-                    style={styles.listBtn}
-                  >
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => handleViewList(recipe)} style={{ background: "#f0f4ff", color: "#3b6fc4", border: "1.5px solid #b3c9f0", borderRadius: "20px", padding: "6px 14px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "Georgia, serif" }}>
                     Shopping list
                   </button>
-                  <button
-                    onClick={() => handleDelete(recipe)}
-                    style={styles.deleteBtn}
-                  >
+                  <button onClick={() => handleDelete(recipe)} style={{ background: "#fff0f0", color: "#b91c1c", border: "1.5px solid #ffb3b3", borderRadius: "20px", padding: "6px 14px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "Georgia, serif" }}>
                     Delete
                   </button>
                 </div>
@@ -240,49 +143,42 @@ export default function Recipes() {
         )}
       </div>
 
-      {/* ── Shopping list panel ─────────────────────────────────── */}
-      {/* Only shows when a recipe is selected */}
-      {listLoading && <p style={styles.muted}>Loading shopping list...</p>}
+      {/* Shopping list */}
+      {listLoading && <p style={{ color: C.tan, fontStyle: "italic", textAlign: "center", padding: "20px" }}>Loading shopping list... 🌿</p>}
 
       {selectedRecipe && (
-        <div style={styles.card}>
-          <h2 style={styles.subheading}>
-            Shopping list — {selectedRecipe.name}
-          </h2>
-          <p style={styles.muted} >
-            Green = you have enough. Red = you need to buy more.
+        <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px" }}>
+          <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "6px" }}>🛒 Shopping list — {selectedRecipe.name}</p>
+          <p style={{ fontSize: "12px", color: C.tan, fontStyle: "italic", marginBottom: "16px" }}>
+            Green = you have enough · Red = you need to buy more
           </p>
-
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {["Ingredient", "Needed", "In stock", "To buy", "Status"].map((h) => (
-                  <th key={h} style={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {selectedRecipe.ingredients.map((ing) => (
-                <tr key={ing.itemId}>
-                  <td style={styles.td}>{ing.name}</td>
-                  <td style={styles.td}>{ing.needed} {ing.unit ?? ""}</td>
-                  <td style={styles.td}>{ing.inStock} {ing.unit ?? ""}</td>
-                  <td style={styles.td}>
-                    {/* Only show "to buy" if you actually need more */}
-                    {ing.sufficient ? "—" : `${ing.toBuy} ${ing.unit ?? ""}`}
-                  </td>
-                  <td style={styles.td}>
-                    <span style={ing.sufficient ? styles.badgeOk : styles.badgeLow}>
-                      {ing.sufficient ? "Have enough" : "Need to buy"}
-                    </span>
-                  </td>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "400px" }}>
+              <thead>
+                <tr>
+                  {["Ingredient", "Needed", "In stock", "To buy", "Status"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `2px dashed ${C.border}`, fontFamily: "system-ui, sans-serif" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Summary line */}
-          <p style={styles.summary}>
+              </thead>
+              <tbody>
+                {selectedRecipe.ingredients.map((ing) => (
+                  <tr key={ing.itemId}>
+                    <td style={tdStyle}>{ing.name}</td>
+                    <td style={tdStyle}>{ing.needed} {ing.unit ?? ""}</td>
+                    <td style={tdStyle}>{ing.inStock} {ing.unit ?? ""}</td>
+                    <td style={tdStyle}>{ing.sufficient ? "—" : `${ing.toBuy} ${ing.unit ?? ""}`}</td>
+                    <td style={tdStyle}>
+                      <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "20px", fontFamily: "system-ui, sans-serif", fontWeight: "600", background: ing.sufficient ? "#f0fdf4" : "#fff0f0", color: ing.sufficient ? "#166534" : "#b91c1c", border: `1px solid ${ing.sufficient ? "#b3f0c9" : "#ffb3b3"}` }}>
+                        {ing.sufficient ? "Have enough" : "Need to buy"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ marginTop: "16px", fontSize: "14px", fontWeight: "600", color: C.brown, fontFamily: "system-ui, sans-serif" }}>
             {selectedRecipe.ingredients.every((i) => i.sufficient)
               ? "✅ You have everything you need to make this!"
               : `⚠️ You're missing ${selectedRecipe.ingredients.filter((i) => !i.sufficient).length} ingredient(s).`}
@@ -293,32 +189,11 @@ export default function Recipes() {
   );
 }
 
-const styles = {
-  heading: { fontSize: "24px", fontWeight: "700", marginBottom: "24px", color: "#111827" },
-  subheading: { fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#374151" },
-  card: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px", marginBottom: "24px" },
-  form: { display: "flex", flexDirection: "column", gap: "16px" },
-  field: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "13px", fontWeight: "500", color: "#374151" },
-  input: { padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none" },
-  ingredientRow: { display: "flex", gap: "8px", alignItems: "center" },
-  removeBtn: { padding: "8px 10px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontSize: "13px" },
-  addRowBtn: { alignSelf: "flex-start", padding: "8px 16px", background: "#f9fafb", color: "#374151", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", cursor: "pointer" },
-  button: { alignSelf: "flex-start", padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer" },
-  recipeList: { display: "flex", flexDirection: "column", gap: "12px" },
-  recipeRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "10px" },
-  recipeName: { fontWeight: "600", fontSize: "15px", color: "#111827", margin: 0 },
-  recipeMeta: { fontSize: "12px", color: "#9ca3af", margin: "4px 0 0" },
-  recipeActions: { display: "flex", gap: "8px" },
-  listBtn: { padding: "7px 14px", background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", borderRadius: "6px", fontSize: "13px", fontWeight: "500", cursor: "pointer" },
-  deleteBtn: { padding: "7px 14px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", fontSize: "13px", fontWeight: "500", cursor: "pointer" },
-  table: { width: "100%", borderCollapse: "collapse", marginTop: "12px" },
-  th: { textAlign: "left", padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#6b7280", borderBottom: "1px solid #e5e7eb" },
-  td: { padding: "12px", fontSize: "14px", color: "#111827", borderBottom: "1px solid #f3f4f6" },
-  badgeOk: { background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "500" },
-  badgeLow: { background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "500" },
-  summary: { marginTop: "16px", fontSize: "14px", fontWeight: "500", color: "#374151" },
-  error: { color: "#dc2626", fontSize: "14px", background: "#fef2f2", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  success: { color: "#16a34a", fontSize: "14px", background: "#f0fdf4", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  muted: { color: "#9ca3af", fontSize: "14px", marginBottom: "12px" },
-};
+const tdStyle = { padding: "11px 12px", fontSize: "13px", color: "#3d2b1f", borderBottom: "1.5px dotted #f5e6c8", fontFamily: "system-ui, sans-serif" };
+const alertStyle = (type) => ({
+  background: type === "error" ? "#fff0f0" : "#f0fdf4",
+  border: `1.5px solid ${type === "error" ? "#ffb3b3" : "#b3f0c9"}`,
+  borderRadius: "14px", padding: "11px 16px", fontSize: "13px",
+  color: type === "error" ? "#b91c1c" : "#166534",
+  marginBottom: "16px", fontFamily: "system-ui, sans-serif",
+});

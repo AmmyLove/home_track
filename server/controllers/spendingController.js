@@ -26,7 +26,9 @@ const summarize = (purchases) => {
 // All-time spending
 export const getAllTimeSpending = async (req, res) => {
   try {
-    const purchases = await Purchase.findAll({ include: Item,
+    const purchases = await Purchase.findAll({
+      where: { userId: req.userId }, 
+      include: Item,
       order: [["purchasedAt", "DESC"]], // newest first
      });
     res.json(summarize(purchases));
@@ -94,7 +96,7 @@ export const getMonthlyHistory = async (req, res) => {
     const startStr = start.toISOString().split("T")[0];
 
     const purchases = await Purchase.findAll({
-      where: { purchasedAt: { [Op.gte]: startStr } },
+      where: { userId: req.userId, purchasedAt: { [Op.gte]: startStr } },
       include: Item,
       order: [["purchasedAt", "ASC"]],
     });

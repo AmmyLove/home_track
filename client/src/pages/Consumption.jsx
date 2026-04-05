@@ -1,226 +1,126 @@
-// src/pages/Consumption.jsx
-
 import { useState, useEffect } from "react";
 import { getItems } from "../api/items.js";
 import { getConsumptions, logConsumption, getUsageInsights } from "../api/consumption.js";
 
+const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
+const inputStyle = { padding: "9px 13px", border: `2px solid #f5e6c8`, borderRadius: "12px", fontSize: "14px", background: "#fff", color: "#3d2b1f", outline: "none", fontFamily: "Georgia, serif", width: "100%" };
+const Label = ({ children }) => <label style={{ fontSize: "11px", fontWeight: "700", color: "#8b7355", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "6px", display: "block", fontFamily: "system-ui, sans-serif" }}>{children}</label>;
+
 export default function Consumption() {
-  const [items, setItems] = useState([]);
-  const [consumptions, setConsumptions] = useState([]); // consumption history
-  const [insights, setInsights] = useState([]);          // usage rate + days left per item
+  const [items, setItems]           = useState([]);
+  const [consumptions, setConsumptions] = useState([]);
+  const [insights, setInsights]     = useState([]);
+  const [form, setForm]             = useState({ itemId: "", quantity: "", note: "", consumedAt: "" });
+  const [error, setError]           = useState(null);
+  const [success, setSuccess]       = useState(null);
+  const [lastAlert, setLastAlert]   = useState(null);
+  const [loading, setLoading]       = useState(false);
 
-  const [form, setForm] = useState({
-    itemId: "",
-    quantity: "",
-    note: "",
-    consumedAt: "", // optional — defaults to today on the backend
-  });
-
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [lastAlert, setLastAlert] = useState(null); // restock alert after logging
-  const [loading, setLoading] = useState(false);
-
-  // Load everything when page opens
   useEffect(() => {
-    getItems().then((res) => setItems(res.data)).catch(() => setError("Failed to load items."));
+    getItems().then((r) => setItems(r.data)).catch(() => {});
     fetchConsumptions();
     fetchInsights();
   }, []);
 
   const fetchConsumptions = async () => {
-    try {
-      const res = await getConsumptions();
-      setConsumptions(res.data);
-    } catch (err) {
-      setError("Failed to load consumption history.");
-    }
+    try { const r = await getConsumptions(); setConsumptions(r.data); }
+    catch {}
   };
 
   const fetchInsights = async () => {
-    try {
-      const res = await getUsageInsights();
-      setInsights(res.data);
-    } catch (err) {
-      // Insights failing shouldn't block the whole page
-      console.error("Failed to load insights:", err);
-    }
+    try { const r = await getUsageInsights(); setInsights(r.data); }
+    catch {}
   };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLastAlert(null);
-
-    if (!form.itemId) return setError("Please select an item.");
+    setError(null); setSuccess(null); setLastAlert(null);
+    if (!form.itemId)              return setError("Please select an item.");
     if (!form.quantity || form.quantity <= 0) return setError("Quantity must be greater than 0.");
-
     setLoading(true);
     try {
-      const res = await logConsumption({
-        itemId: form.itemId,
-        quantity: parseFloat(form.quantity),
-        note: form.note || null,
-        consumedAt: form.consumedAt || null, // null = backend uses today
-      });
-
-      setSuccess("Consumption logged!");
-      if (res.data.alert) setLastAlert(res.data.alert);
-
-      // Reset form but keep the item selected — convenient for logging multiple uses
+      const r = await logConsumption({ itemId: form.itemId, quantity: parseFloat(form.quantity), note: form.note || null, consumedAt: form.consumedAt || null });
+      setSuccess("Usage logged! 🌿");
+      if (r.data.alert) setLastAlert(r.data.alert);
       setForm({ itemId: form.itemId, quantity: "", note: "", consumedAt: "" });
-
-      // Refresh both history and insights
       fetchConsumptions();
       fetchInsights();
     } catch (err) {
-      // Show the backend's error message if available (e.g. "not enough stock")
-      setError(err.response?.data?.error || "Failed to log consumption.");
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.error || "Failed to log usage.");
+    } finally { setLoading(false); }
   };
 
-  const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString("en-GB", {
-      day: "numeric", month: "short", year: "numeric",
-    });
-
-  // ── Render ─────────────────────────────────────────────────────
+  const formatDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   return (
-    <div>
-      <h1 style={styles.heading}>Consumption</h1>
-      <p style={styles.intro}>
-        Log when you use something at home. This helps the app learn how fast
-        you go through each item and predict when you'll need to restock.
+    <div style={{ fontFamily: "Georgia, serif" }}>
+      <h1 style={{ fontSize: "clamp(20px, 4vw, 24px)", fontWeight: "700", color: C.brown, marginBottom: "6px" }}>Consumption 🔥</h1>
+      <p style={{ fontSize: "13px", color: C.tan, fontStyle: "italic", marginBottom: "24px" }}>
+        Log what you use at home. The more you log, the smarter the app gets about predicting when you'll run out.
       </p>
 
-      {error && <p style={styles.error}>{error}</p>}
-      {success && <p style={styles.success}>{success}</p>}
-      {lastAlert && <p style={styles.alert}>⚠️ {lastAlert}</p>}
+      {error     && <div style={alertStyle("error")}>{error}</div>}
+      {success   && <div style={alertStyle("success")}>{success}</div>}
+      {lastAlert && <div style={alertStyle("warn")}>⚠️ {lastAlert}</div>}
 
-      {/* ── Log consumption form ──────────────────────────────── */}
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Log Usage</h2>
-        <form onSubmit={handleSubmit} style={styles.form}>
-
-          {/* Item selector */}
-          <div style={styles.field}>
-            <label style={styles.label}>Item *</label>
-            <select
-              style={styles.input}
-              name="itemId"
-              value={form.itemId}
-              onChange={handleChange}
-            >
+      {/* Log form */}
+      <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px", marginBottom: "20px" }}>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>✨ Log usage</p>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "14px" }}>
+            <Label>Item *</Label>
+            <select style={inputStyle} name="itemId" value={form.itemId} onChange={handleChange}>
               <option value="">Select an item</option>
-              {items.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} {item.unit ? `(${item.unit})` : ""}
-                </option>
-              ))}
+              {items.map((item) => <option key={item.id} value={item.id}>{item.name} {item.unit ? `(${item.unit})` : ""}</option>)}
             </select>
-            {items.length === 0 && (
-              <p style={styles.hint}>No items yet — add some on the Items page first.</p>
-            )}
           </div>
-
-          <div style={styles.row}>
-            {/* How much was used */}
-            <div style={styles.field}>
-              <label style={styles.label}>Quantity used *</label>
-              <input
-                style={styles.input}
-                name="quantity"
-                type="number"
-                min="0"
-                step="any"
-                value={form.quantity}
-                onChange={handleChange}
-                placeholder="e.g. 0.5"
-              />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px", marginBottom: "14px" }}>
+            <div>
+              <Label>Quantity used *</Label>
+              <input style={inputStyle} name="quantity" type="number" min="0" step="any" value={form.quantity} onChange={handleChange} placeholder="e.g. 0.5" />
             </div>
-
-            {/* Optional date — for logging past usage */}
-            <div style={styles.field}>
-              <label style={styles.label}>Date used</label>
-              <input
-                style={styles.input}
-                name="consumedAt"
-                type="date"
-                value={form.consumedAt}
-                onChange={handleChange}
-                max={new Date().toISOString().split("T")[0]} // can't log future usage
-              />
-              <p style={styles.hint}>Leave blank to use today.</p>
+            <div>
+              <Label>Date used</Label>
+              <input style={inputStyle} name="consumedAt" type="date" value={form.consumedAt} onChange={handleChange} max={new Date().toISOString().split("T")[0]} />
             </div>
           </div>
-
-          {/* Optional note — what was it used for? */}
-          <div style={styles.field}>
-            <label style={styles.label}>Note (optional)</label>
-            <input
-              style={styles.input}
-              name="note"
-              value={form.note}
-              onChange={handleChange}
-              placeholder="e.g. Used for jollof rice"
-            />
+          <div style={{ marginBottom: "14px" }}>
+            <Label>Note (optional)</Label>
+            <input style={inputStyle} name="note" value={form.note} onChange={handleChange} placeholder="e.g. Used for jollof rice" />
           </div>
-
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Logging..." : "Log Usage"}
+          <button type="submit" style={{ background: C.coral, color: "#fff", border: "none", borderRadius: "20px", padding: "10px 24px", fontSize: "14px", fontWeight: "700", cursor: "pointer", fontFamily: "Georgia, serif" }} disabled={loading}>
+            {loading ? "Logging... 🌿" : "Log usage 🔥"}
           </button>
         </form>
       </div>
 
-      {/* ── Usage insights ────────────────────────────────────── */}
-      {/* Only shows after enough consumption data has been logged */}
+      {/* Usage insights */}
       {insights.length > 0 && (
-        <div style={styles.card}>
-          <h2 style={styles.subheading}>Usage Insights</h2>
-          <p style={styles.muted}>
-            Based on your consumption logs over the last 30 days.
-          </p>
-
-          <div style={styles.insightGrid}>
-            {insights.map((insight) => (
-              <div
-                key={insight.itemId}
-                // Highlight cards where stock is running low
-                style={{
-                  ...styles.insightCard,
-                  borderColor: insight.needsRestockSoon ? "#fcd34d" : "#e5e7eb",
-                  background: insight.needsRestockSoon ? "#fffbeb" : "#f9fafb",
-                }}
-              >
-                <p style={styles.insightName}>{insight.name}</p>
-
-                {/* How fast this item gets used */}
-                <p style={styles.insightStat}>
-                  <span style={styles.insightLabel}>Avg/day</span>
-                  {insight.avgPerDay} {insight.unit ?? ""}
-                </p>
-
-                {/* Current stock */}
-                <p style={styles.insightStat}>
-                  <span style={styles.insightLabel}>In stock</span>
-                  {insight.currentStock} {insight.unit ?? ""}
-                </p>
-
-                {/* Days until empty — null means no consumption logged yet */}
-                <p style={styles.insightStat}>
-                  <span style={styles.insightLabel}>Days left</span>
-                  {insight.daysLeft !== null ? `~${insight.daysLeft} days` : "Unknown"}
-                </p>
-
-                {/* Warning badge if running out within 7 days */}
-                {insight.needsRestockSoon && (
-                  <span style={styles.warnBadge}>Restock soon</span>
+        <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px", marginBottom: "20px" }}>
+          <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "6px" }}>🧠 Usage insights</p>
+          <p style={{ fontSize: "12px", color: C.tan, fontStyle: "italic", marginBottom: "16px" }}>Based on your logs over the last 30 days.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+            {insights.map((ins) => (
+              <div key={ins.itemId} style={{ background: ins.needsRestockSoon ? "#fffbeb" : "#fdf6e3", border: `2px solid ${ins.needsRestockSoon ? "#fcd34d" : C.border}`, borderRadius: "18px", padding: "14px" }}>
+                <p style={{ fontSize: "13px", fontWeight: "700", color: C.brown, marginBottom: "10px", fontFamily: "system-ui, sans-serif" }}>{ins.name}</p>
+                <div style={{ fontSize: "11px", color: C.tan, display: "flex", justifyContent: "space-between", marginBottom: "4px", fontFamily: "system-ui, sans-serif" }}>
+                  <span>Avg/day</span><span style={{ fontWeight: "600", color: C.brown }}>{ins.avgPerDay} {ins.unit ?? ""}</span>
+                </div>
+                <div style={{ fontSize: "11px", color: C.tan, display: "flex", justifyContent: "space-between", marginBottom: "4px", fontFamily: "system-ui, sans-serif" }}>
+                  <span>In stock</span><span style={{ fontWeight: "600", color: C.brown }}>{ins.currentStock} {ins.unit ?? ""}</span>
+                </div>
+                <div style={{ fontSize: "11px", color: C.tan, display: "flex", justifyContent: "space-between", fontFamily: "system-ui, sans-serif" }}>
+                  <span>Days left</span>
+                  <span style={{ fontWeight: "700", color: ins.needsRestockSoon ? "#e05c5c" : "#2d8a4e" }}>
+                    {ins.daysLeft !== null ? `~${ins.daysLeft}` : "?"}
+                  </span>
+                </div>
+                {ins.needsRestockSoon && (
+                  <div style={{ marginTop: "8px", background: "#fef3c7", border: "1.5px solid #fcd34d", borderRadius: "20px", padding: "2px 10px", fontSize: "10px", color: "#8b6914", fontWeight: "700", textAlign: "center", fontFamily: "system-ui, sans-serif" }}>
+                    Restock soon ⚠️
+                  </div>
                 )}
               </div>
             ))}
@@ -228,60 +128,44 @@ export default function Consumption() {
         </div>
       )}
 
-      {/* ── Consumption history ───────────────────────────────── */}
-      <div style={styles.card}>
-        <h2 style={styles.subheading}>Usage History ({consumptions.length})</h2>
+      {/* History */}
+      <div style={{ background: C.cardBg, border: `2px solid ${C.border}`, borderRadius: "24px", padding: "22px" }}>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: C.brown, marginBottom: "16px" }}>📋 Usage history ({consumptions.length})</p>
         {consumptions.length === 0 ? (
-          <p style={styles.muted}>No usage logged yet. Log your first one above.</p>
+          <p style={{ color: C.tan, fontStyle: "italic", fontSize: "13px" }}>No usage logged yet. Start logging above!</p>
         ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {["Item", "Qty used", "Note", "Date"].map((h) => (
-                  <th key={h} style={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {consumptions.map((c) => (
-                <tr key={c.id}>
-                  <td style={styles.td}>{c.Item?.name ?? "—"}</td>
-                  <td style={styles.td}>{c.quantity} {c.Item?.unit ?? ""}</td>
-                  <td style={styles.td}>{c.note ?? "—"}</td>
-                  <td style={styles.td}>{formatDate(c.consumedAt || c.createdAt)}</td>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "400px" }}>
+              <thead>
+                <tr>
+                  {["Item", "Qty used", "Note", "Date"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `2px dashed ${C.border}`, fontFamily: "system-ui, sans-serif" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {consumptions.map((c) => (
+                  <tr key={c.id}>
+                    <td style={tdStyle}>{c.Item?.name ?? "—"}</td>
+                    <td style={tdStyle}>{c.quantity} {c.Item?.unit ?? ""}</td>
+                    <td style={tdStyle}>{c.note ?? "—"}</td>
+                    <td style={tdStyle}>{formatDate(c.consumedAt || c.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-const styles = {
-  heading: { fontSize: "24px", fontWeight: "700", marginBottom: "8px", color: "#111827" },
-  intro: { fontSize: "14px", color: "#6b7280", marginBottom: "24px" },
-  subheading: { fontSize: "16px", fontWeight: "600", marginBottom: "16px", color: "#374151" },
-  card: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px", padding: "24px", marginBottom: "24px" },
-  form: { display: "flex", flexDirection: "column", gap: "16px" },
-  row: { display: "flex", gap: "16px", flexWrap: "wrap" },
-  field: { display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "180px" },
-  label: { fontSize: "13px", fontWeight: "500", color: "#374151" },
-  input: { padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none" },
-  button: { alignSelf: "flex-start", padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: "pointer" },
-  hint: { fontSize: "12px", color: "#9ca3af", margin: "4px 0 0" },
-  error: { color: "#dc2626", fontSize: "14px", background: "#fef2f2", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  success: { color: "#16a34a", fontSize: "14px", background: "#f0fdf4", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  alert: { color: "#92400e", fontSize: "14px", background: "#fffbeb", border: "1px solid #fcd34d", padding: "10px 14px", borderRadius: "8px", marginBottom: "12px" },
-  muted: { color: "#9ca3af", fontSize: "14px", marginBottom: "12px" },
-  insightGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "16px" },
-  insightCard: { border: "1px solid #e5e7eb", borderRadius: "10px", padding: "16px", transition: "border-color 0.2s" },
-  insightName: { fontWeight: "600", fontSize: "14px", color: "#111827", margin: "0 0 12px" },
-  insightStat: { display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#374151", margin: "6px 0" },
-  insightLabel: { color: "#9ca3af", fontWeight: "500" },
-  warnBadge: { display: "inline-block", marginTop: "10px", background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "500" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  th: { textAlign: "left", padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#6b7280", borderBottom: "1px solid #e5e7eb" },
-  td: { padding: "12px", fontSize: "14px", color: "#111827", borderBottom: "1px solid #f3f4f6" },
-};
+const tdStyle = { padding: "11px 12px", fontSize: "13px", color: "#3d2b1f", borderBottom: "1.5px dotted #f5e6c8", fontFamily: "system-ui, sans-serif" };
+const alertStyle = (type) => ({
+  background: type === "error" ? "#fff0f0" : type === "warn" ? "#fffbeb" : "#f0fdf4",
+  border: `1.5px solid ${type === "error" ? "#ffb3b3" : type === "warn" ? "#fcd34d" : "#b3f0c9"}`,
+  borderRadius: "14px", padding: "11px 16px", fontSize: "13px",
+  color: type === "error" ? "#b91c1c" : type === "warn" ? "#92400e" : "#166534",
+  marginBottom: "16px", fontFamily: "system-ui, sans-serif",
+});

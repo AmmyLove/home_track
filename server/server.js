@@ -20,7 +20,14 @@ dotenv.config();
 const app = express();
 
 // Middleware — this lets your server read JSON from requests
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",                
+    "https://hometrack.razeb.com",         
+  ],
+  credentials: true,
+}));
+
 app.use(express.json());
 
 
