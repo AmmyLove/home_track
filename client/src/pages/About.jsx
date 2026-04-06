@@ -92,7 +92,7 @@ export default function About() {
       </Card>
 
       {/* How it's built */}
-      <Card>
+      {/* <Card>
         <p style={{ fontSize: "16px", fontWeight: "700", color: C.brown, marginBottom: "4px" }}>🔧 How it's built</p>
         <p style={{ fontSize: "13px", color: C.tan, fontStyle: "italic", marginBottom: "16px" }}>A full-stack JavaScript application, built from scratch.</p>
 
@@ -111,7 +111,7 @@ export default function About() {
         <p style={{ fontSize: "12px", fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", margin: "16px 0 10px", fontFamily: "system-ui, sans-serif" }}>Hosting</p>
         <Tech name="Render" description="Backend API + PostgreSQL database" />
         <Tech name="Vercel" description="React frontend — global CDN" />
-      </Card>
+      </Card> */}
 
       {/* Multi-user */}
       <Card>

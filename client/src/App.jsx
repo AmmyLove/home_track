@@ -5,9 +5,9 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-do
 import { useAuth } from "./context/AuthContext.jsx";
 
 import Dashboard    from "./pages/Dashboard.jsx";
-import Items        from "./pages/items.jsx";
+import Items        from "./pages/Items.jsx";
 import Purchases    from "./pages/Purchases.jsx";
-import Inventory    from "./pages/inventory.jsx";
+import Inventory    from "./pages/Inventory.jsx";
 import Recipes      from "./pages/Recipes.jsx";
 import Consumption  from "./pages/Consumption.jsx";
 import Login        from "./pages/Login.jsx";
