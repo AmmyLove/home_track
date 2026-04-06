@@ -48,7 +48,7 @@ HomeTrack helps you stay on top of what you have at home, what you've spent, and
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/your-username/home-inventory.git
+git clone https://github.com/AmmyLove/home_track.git
 cd home-inventory
 ```
 
