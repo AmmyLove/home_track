@@ -12,6 +12,8 @@ import Login        from "./pages/Login.jsx";
 import Register     from "./pages/Register.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import About from "./pages/About.jsx";
+import Landing from "./pages/Landing.jsx";
+
 
 
 export default function App() {
@@ -85,16 +87,20 @@ export default function App() {
 
       <main style={user ? styles.main : styles.mainFull}>
         <Routes>
+          // Public routes
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login"    element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
 
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/" element={
+            user ? <Dashboard /> : <Landing />
+}/>
           <Route path="/items" element={<ProtectedRoute><Items /></ProtectedRoute>} />
           <Route path="/purchases" element={<ProtectedRoute><Purchases /></ProtectedRoute>} />
           <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
           <Route path="/recipes" element={<ProtectedRoute><Recipes /></ProtectedRoute>} />
           <Route path="/consumption" element={<ProtectedRoute><Consumption /></ProtectedRoute>} />
-          <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </main>
     </BrowserRouter>
