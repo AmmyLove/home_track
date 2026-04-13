@@ -60,3 +60,15 @@ sequelize.sync({ alter: true }) // creates tables if they don't exist
   .catch((err) => {
     console.error('Database connection failed:', err);
   });
+
+  // ← ADD this temporarily to server.js — remove after testing
+// app.get("/api/test-email", async (req, res) => {
+//   try {
+//     const { sendOTPEmail } = await import("./services/emailService.js");
+//     await sendOTPEmail("your.real.email@gmail.com", "Test User", "123456");
+//     res.json({ message: "Email sent successfully!" });
+//   } catch (err) {
+//     // This will show the EXACT error from nodemailer
+//     res.status(500).json({ error: err.message, stack: err.stack });
+//   }
+// });

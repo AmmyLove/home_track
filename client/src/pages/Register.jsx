@@ -11,6 +11,9 @@ export default function Register() {
   const [error, setError]     = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm]   = useState(false);
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -31,8 +34,7 @@ export default function Register() {
         email:    form.email,
         password: form.password,
       });
-      saveAuth(res.data.token, res.data.user);
-      navigate("/");
+      navigate("/verify-otp", { state: { email: form.email } });
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
@@ -87,28 +89,47 @@ export default function Register() {
 
           <div style={styles.field}>
             <label style={styles.label}>Password</label>
-            <input
-              style={styles.input}
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="at least 6 characters"
-              autoComplete="new-password"
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...styles.input, paddingRight: "44px" }}
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="at least 6 characters"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#b8956a", padding: "0", lineHeight: 1 }}
+              >
+                {showPassword ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
+
 
           <div style={styles.field}>
             <label style={styles.label}>Confirm password</label>
-            <input
-              style={styles.input}
-              type="password"
-              name="confirm"
-              value={form.confirm}
-              onChange={handleChange}
-              placeholder="same password again"
-              autoComplete="new-password"
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...styles.input, paddingRight: "44px" }}
+                type={showConfirm ? "text" : "password"}
+                name="confirm"
+                value={form.confirm}
+                onChange={handleChange}
+                placeholder="same password again"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((s) => !s)}
+                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#b8956a", padding: "0", lineHeight: 1 }}
+              >
+                {showConfirm ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
 
           <button

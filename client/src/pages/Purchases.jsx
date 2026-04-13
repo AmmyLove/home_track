@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { getItems } from "../api/items.js";
 import { getPurchases, createPurchase } from "../api/purchases.js";
 import { formatMoney, CURRENCIES } from "../utils/format.js";
+import { useAutoFade } from "../hooks/useAutoFade.js";
 
 const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
 
@@ -27,11 +29,24 @@ export default function Purchases() {
   const [success, setSuccess]     = useState(null);
   const [lastAlert, setLastAlert] = useState(null);
   const [loading, setLoading]     = useState(false);
+  const location = useLocation();
+
+  useAutoFade(success, setSuccess);
+  useAutoFade(error, setError, 6000); 
+
 
   useEffect(() => {
-    getItems().then((r) => setItems(r.data)).catch(() => {});
+  getItems().then((r) => {
+    setItems(r.data);
+    // Pre-select item if coming from recipe shopping list
+    const params = new URLSearchParams(location.search);
+    const preSelectedId = params.get("item");
+    if (preSelectedId) {
+      setForm((f) => ({ ...f, itemId: preSelectedId }));
+    }
+    }).catch(() => {});
     fetchPurchases();
-  }, []);
+  }, [location.search]);
 
   const fetchPurchases = async () => {
     try { const r = await getPurchases(); setPurchases(r.data); }

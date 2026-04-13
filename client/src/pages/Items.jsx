@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getItems, createItem, updateItem, deleteItem } from "../api/items.js";
+import { useAutoFade } from "../hooks/useAutoFade.js";
 
 const C = { bg: "#fdf6e3", cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
 const CATEGORIES = ["Produce", "Dairy", "Meat", "Grains", "Beverages", "Cleaning", "Other"];
@@ -36,6 +37,10 @@ export default function Items() {
   const [error, setError]         = useState(null);
   const [success, setSuccess]     = useState(null);
   const [deletingId, setDeleting] = useState(null);
+
+
+  useAutoFade(success, setSuccess);
+  useAutoFade(error, setError, 6000); 
 
   useEffect(() => { fetchItems(); }, []);
 
@@ -123,10 +128,20 @@ export default function Items() {
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </Select>
             </div>
-            <div>
-              <Label>Restock threshold</Label>
-              <Input name="restockThreshold" type="number" min="0" value={form.restockThreshold} onChange={handleChange} placeholder="e.g. 2" />
-            </div>
+    <div>
+      <Label>Restock threshold</Label>
+      <Input
+        name="restockThreshold"
+        type="number"
+        min="0"
+        value={form.restockThreshold}
+        onChange={handleChange}
+        placeholder="e.g. 2"
+      />
+      <p style={{ fontSize: "11px", color: "#b8956a", fontStyle: "italic", marginTop: "5px", lineHeight: "1.5" }}>
+        🌱 The minimum amount you always want to have at home. When your stock drops to or below this number, the app will alert you to restock. E.g. set 2 for Rice (kg) to be alerted when you have 2kg or less left.
+      </p>
+    </div>
           </div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <button type="submit" style={btnStyle("primary")}>

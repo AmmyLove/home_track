@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getItems } from "../api/items.js";
 import { getConsumptions, logConsumption, getUsageInsights } from "../api/consumption.js";
+import { useAutoFade } from "../hooks/useAutoFade.js";
 
 const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
 const inputStyle = { padding: "9px 13px", border: `2px solid #f5e6c8`, borderRadius: "12px", fontSize: "14px", background: "#fff", color: "#3d2b1f", outline: "none", fontFamily: "Georgia, serif", width: "100%" };
@@ -15,6 +16,9 @@ export default function Consumption() {
   const [success, setSuccess]       = useState(null);
   const [lastAlert, setLastAlert]   = useState(null);
   const [loading, setLoading]       = useState(false);
+
+  useAutoFade(success, setSuccess);
+  useAutoFade(error, setError, 6000); 
 
   useEffect(() => {
     getItems().then((r) => setItems(r.data)).catch(() => {});

@@ -11,6 +11,8 @@ export default function Login() {
   const [error, setError]     = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -29,7 +31,13 @@ export default function Login() {
       // Redirect to dashboard
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed. Please try again.");
+       const data = err.response?.data;
+  // If account needs verification, redirect to OTP page
+  if (data?.requiresVerification) {
+    navigate("/verify-otp", { state: { email: form.email } });
+    return;
+  }
+  setError(data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -68,20 +76,35 @@ export default function Login() {
               placeholder="you@example.com"
               autoComplete="email"
             />
-          </div>
+      </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <input
-              style={styles.input}
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              autoComplete="current-password"
-            />
-          </div>
+      <div style={styles.field}>
+        <label style={styles.label}>Password</label>
+        <div style={{ position: "relative" }}>
+          <input
+            style={{ ...styles.input, paddingRight: "44px" }}
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+          <div style={{ textAlign: "right", marginTop: "-8px" }}>
+          <Link to="/forgot-password" style={{ fontSize: "12px", color: "#e05c5c", fontStyle: "italic" }}>
+            Forgot password?
+          </Link>
+        </div>
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#b8956a", padding: "0", lineHeight: 1 }}
+          >
+            {showPassword ? "🙈" : "👁"}
+          </button>
+          
+        </div>
+      </div>
 
           <button
             type="submit"

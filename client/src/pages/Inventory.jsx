@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getInventory } from "../api/inventory.js";
+import { useAutoFade } from "../hooks/useAutoFade.js";
 
 const C = { cardBg: "#fff9f0", border: "#f5e6c8", coral: "#ff6b6b", brown: "#3d2b1f", tan: "#b8956a", muted: "#8b7355" };
 const EMOJI_MAP = { Produce: "🥬", Dairy: "🥛", Meat: "🍗", Grains: "🌾", Beverages: "🧃", Cleaning: "🧹", Other: "📦" };
@@ -8,6 +9,10 @@ export default function Inventory() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
+
+
+  useAutoFade(success, setSuccess);
+  useAutoFade(error, setError, 6000);
 
   useEffect(() => {
     getInventory()

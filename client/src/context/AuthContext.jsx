@@ -16,15 +16,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    if (token) {
+    if (!token) {
+      // No token — skip the check, go straight to not-logged-in state
+      setLoading(false);
+      return;
+    }
       getMe()
         .then((res) => setUser(res.data))
         .catch(() => {
           // Token is invalid or expired — clear it
           localStorage.removeItem("token");
+           setUser(null);
         })
         .finally(() => setLoading(false));
-    } else {
+    {
       setLoading(false);
     }
   }, []);
@@ -41,6 +46,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Don't render anything until we know the auth state
+  // This prevents a flash of the login page for logged-in users
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#fdf6e3", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px", fontFamily: "Georgia, serif" }}>
+        <div style={{ fontSize: "40px" }}>🏡</div>
+        <p style={{ fontSize: "14px", color: "#b8956a", fontStyle: "italic" }}>Loading your home...</p>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, loading, saveAuth, logout }}>
       {children}
@@ -48,5 +64,4 @@ export function AuthProvider({ children }) {
   );
 }
 
-// A shortcut hook — any component can call useAuth() to get the current user
 export const useAuth = () => useContext(AuthContext);
