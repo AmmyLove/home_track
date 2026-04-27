@@ -29,9 +29,9 @@ export function AuthProvider({ children }) {
            setUser(null);
         })
         .finally(() => setLoading(false));
-    {
-      setLoading(false);
-    }
+    // {
+    //   setLoading(false);
+    // }
   }, []);
 
   // Called after a successful login or register

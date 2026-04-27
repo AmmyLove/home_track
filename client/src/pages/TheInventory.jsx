@@ -21,6 +21,8 @@ export default function Inventory() {
       .finally(() => setLoading(false));
   }, []);
 
+  const [success, setSuccess] = useState(null);
+  
   const isLow = (e) => {
     const t = e.Item?.restockThreshold ?? 0;
     return e.quantity <= t && t > 0;
