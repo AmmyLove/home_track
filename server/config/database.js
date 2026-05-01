@@ -33,3 +33,14 @@ const sequelize = process.env.DATABASE_URL
     );
 
 export default sequelize;
+
+
+
+// DB_NAME=home_track_db
+// DB_USER=home_track_db_user
+// DB_PASSWORD=VdHf9JmKfICWVzNxqG3FD6kjIRq5Xo1J
+// DB_HOST=dpg-d76lfp75r7bs73c9ccmg-a.frankfurt-postgres.render.com
+// DB_PORT=5432
+// PORT=3000
+// BASE_URL=http://localhost:3000
+// REDIS_URL=redis://default:eM4b8doQJkKor3sskTAPuhrS5og31OSy@redis-13592.c285.us-west-2-2.ec2.cloud.redislabs.com:13592

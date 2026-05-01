@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import net from "node:net";
+import dns from "node:dns";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -13,14 +15,28 @@ const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",       // ← explicit host instead of service:"gmail"
   port: 465,                    // ← 465 for SSL, more reliable than 587
   secure: true,                 // ← true for port 465
+   // ✅ Force IPv4 resolution manually
+    getSocket: (options, callback) => {
+    dns.lookup(options.host, { family: 4 }, (err, address) => {
+      if (err) return callback(err);
+
+      const socket = net.connect({
+        host: address,
+        port: options.port,
+      });
+
+      callback(null, socket);
+    });
+  },
+
+
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: false,  // ← prevents TLS errors on some servers
-  },
 });
+
+
 
 // ── Verify connection on startup ──────────────────────────────────
 // This logs a clear message so you know immediately if email works
