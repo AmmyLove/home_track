@@ -60,13 +60,12 @@ npm install
 
 Create `server/.env`:
 
-DB_NAME=home_inventory
-DB_USER=postgres
+DB_NAME=
+DB_USER=
 DB_PASSWORD=your_password
 DB_HOST=localhost
 PORT=5000
 JWT_SECRET=your_long_secret_key_here
-NODE_ENV=development
 
 Create the database:
 ```bash
@@ -96,61 +95,6 @@ npm run dev
 ```
 
 Open `http://localhost:5173` in your browser.
-
----
-
-## 🌍 Deployment
-
-### Backend (Render)
-
-1. Create a new **Web Service** on [Render](https://render.com)
-2. Connect your GitHub repo
-3. Set these build settings:
-   - Root directory: `server`
-   - Build command: `npm install`
-   - Start command: `npm start`
-4. Add environment variables:
-   - `DATABASE_URL` — from your Render PostgreSQL dashboard
-   - `JWT_SECRET` — a long random string
-   - `NODE_ENV` — `production`
-   - `PORT` — `5000`
-
-### Database (Render)
-
-1. Create a new **PostgreSQL** instance on Render
-2. Copy the **External Database URL** into your Web Service's `DATABASE_URL` env variable
-
-### Frontend (Vercel)
-
-1. Create a new project on [Vercel](https://vercel.com)
-2. Connect your GitHub repo
-3. Set the root directory to `client`
-4. Add environment variable:
-   - `VITE_API_URL` — your Render backend URL (e.g. `https://hometrack-api.onrender.com`)
-5. Deploy
-
----
-
-## 📁 Project Structure
-
-home-inventory/
-├── server/                  # Express backend
-│   ├── config/
-│   │   └── database.js      # Sequelize connection
-│   ├── controllers/         # Business logic
-│   ├── middleware/
-│   │   └── auth.js          # JWT verification
-│   ├── models/              # Sequelize models
-│   ├── routes/              # Express routes
-│   └── server.js            # Entry point
-│
-└── client/                  # React frontend
-└── src/
-├── api/             # Axios API calls
-├── components/      # Shared components
-├── context/         # Auth context
-├── pages/           # Page components
-└── utils/           # Helpers (formatting etc.)
 
 
 ---
